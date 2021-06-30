@@ -1,0 +1,10 @@
+
+menu "LVGL application configuration"
+    config LV_HOR_RES_MAX
+        int "Maximal horizontal resolution to support by the library."
+        default 480
+
+    config LV_VER_RES_MAX
+        int "Maximal vertical resolution to support by the library."
+        default 320
+endmenu
