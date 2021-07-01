@@ -8,5 +8,6 @@
     "target/esp32.cfg"
   ],
   "idf.port": "/dev/cu.usbserial-1420",
-  "git.ignoreLimitWarning": true
+  "git.ignoreLimitWarning": true,
+  "idf.flashType": "UART"
 }

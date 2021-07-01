@@ -152,4 +152,8 @@ static void lv_tick_task(void *arg) {
 
 static void create_application(void)
 {
+	static const char * btns[] = {"Cancel", "Ok", ""};
+
+	lv_obj_t * m = lv_msgbox_create(lv_scr_act(), "It worked", "Press ok to acknowledge", btns, true);
+    lv_obj_align(m, LV_ALIGN_CENTER, 0, 0);
 }
