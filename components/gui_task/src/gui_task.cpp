@@ -100,7 +100,7 @@ static void init_display_buffers()
 	// Initialize the working buffers
 	lv_disp_draw_buf_init(&disp_buf, buf1, buf2, size_in_px);
 
-	lv_disp_drv_t disp_drv;
+	static lv_disp_drv_t disp_drv;
 	lv_disp_drv_init(&disp_drv);
 	disp_drv.flush_cb = disp_driver_flush;
 
