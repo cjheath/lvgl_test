@@ -1,9 +1,7 @@
-[submodule "components/lv_port_esp32"]
-	path = components/lv_port_esp32
-	url = git@github.com:lvgl/lv_port_esp32.git
 [submodule "components/lvgl"]
 	path = components/lvgl
 	url = https://github.com/lvgl/lvgl.git
+	ignore = untracked
 [submodule "components/lvgl_esp32_drivers"]
 	path = components/lvgl_esp32_drivers
 	url = git@github.com:lvgl/lvgl_esp32_drivers.git
