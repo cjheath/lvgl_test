@@ -3,20 +3,24 @@
  */
 #include "gui_task.h"
 #include "wifi_lvgl.h"
+#include "freertos/task.h"
 
 extern "C"{
 	void app_main();
 }
 
+using namespace LVGL;
+
 void app_main()
 {
-	esp_err_t	err = gui_task_create();
+	Display*	display = new Display();
 
-        if (pdTRUE == xSemaphoreTake(xGuiSemaphore, portMAX_DELAY))
-	{
+	display->synchronised([]() {
 		create_wifi_provisioning_ui();
-		xSemaphoreGive(xGuiSemaphore);
-	}
-	
+	});
+
 	// REVISIT: Rest of the app to be added here
+	// display->run();
+
+	vTaskDelay(portMAX_DELAY);
 }

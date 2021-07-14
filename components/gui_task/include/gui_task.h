@@ -1,23 +1,37 @@
 /*
- * LVGL user interface gui Task
+ * LVGL GUI Display
  */
-#include <stdbool.h>
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
-
 #include "freertos/FreeRTOS.h"
-#include "freertos/task.h"
-#include "esp_freertos_hooks.h"
 #include "freertos/semphr.h"
-#include "esp_system.h"
 
-#include "sdkconfig.h"
 #include "lvgl.h"
-#include "lvgl_helpers.h"
 
-// Actions on the created GUI must be synchronised under this semaphore
-extern	SemaphoreHandle_t	xGuiSemaphore;
+namespace LVGL {
 
-// Initialise the display and process user interface events
-esp_err_t			gui_task_create();
+class Display
+{
+public:
+	// Initialise a display
+	Display();
+	~Display();
+
+	// Call this lambda under control of the display semaphore
+	void			synchronised(void (*)());
+
+protected:
+	lv_disp_t*		display;
+	lv_disp_drv_t*		display_driver;
+	SemaphoreHandle_t	gui_semaphore;
+	lv_color_t*		buf1;
+	lv_color_t*		buf2;
+	lv_disp_draw_buf_t*	draw_buf;
+	lv_indev_drv_t*		input_driver;
+	esp_timer_handle_t	periodic_timer;
+
+	void			init_driver();
+	void			init_pointer_device();
+	void			start_gui_timer();
+	void			run();
+};
+
+}
