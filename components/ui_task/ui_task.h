@@ -30,7 +30,7 @@ protected:
 
 	void			init_driver();
 	void			init_pointer_device();
-	void			start_gui_timer();
+	void			start_ui_timer();
 	void			run();
 };
 

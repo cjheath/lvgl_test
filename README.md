@@ -1,7 +1,7 @@
 ## Test program for LVGL on ESP-IDF and ILI9341
 
 Just a stub at present, to test the component build process.
-Rather than using LVGL directly, I'm building the `gui_task` component as a wrapper for some details.
+Rather than using LVGL directly, I'm building the `ui_task` component as a wrapper for some details.
 Next up is to implement WiFi AP scanning, selection and password entry.
 
 ### Setup:

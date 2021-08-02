@@ -5,3 +5,12 @@
 [submodule "components/lvgl_esp32_drivers"]
 	path = components/lvgl_esp32_drivers
 	url = git@github.com:lvgl/lvgl_esp32_drivers.git
+[submodule "wifi_credential_ui"]
+	path = components/wifi_credential_ui
+	url = git@github.com:cjheath/wifi_credential_ui.git
+[submodule "wifi_credentials"]
+	path = components/wifi_credentials
+	url = git@github.com:cjheath/wifi_credentials.git
+[submodule "lvgl_touchscreen_cal"]
+	path = components/lvgl_touchscreen_cal
+	url = git@github.com:cjheath/lvgl_touchscreen_cal.git

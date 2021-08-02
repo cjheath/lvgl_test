@@ -27,9 +27,9 @@
 #include "lvgl.h"
 #include "lvgl_helpers.h"
 
-#include "gui_task.h"
+#include "ui_task.h"
 
-static void		gui_task(void *pvParameter);
+static void		ui_task(void *pvParameter);
 
 using namespace LVGL;
 
@@ -126,7 +126,7 @@ void Display::init_pointer_device()
 #endif
 }
 
-void Display::start_gui_timer()
+void Display::start_ui_timer()
 {
 	/* Create and start a periodic timer interrupt to call lv_tick_inc */
 	const esp_timer_create_args_t periodic_timer_args = {
@@ -142,13 +142,13 @@ void Display::start_gui_timer()
 
 void Display::run()
 {
-	start_gui_timer();
+	start_ui_timer();
 
-	// NOTE: When not using Wi-Fi nor Bluetooth you could pin the gui_task to core 0
-	xTaskCreatePinnedToCore(gui_task, "gui", 4096*2, (void*)this, 0, NULL, 1);
+	// NOTE: When not using Wi-Fi nor Bluetooth you could pin the ui_task to core 0
+	xTaskCreatePinnedToCore(ui_task, "gui", 4096*2, (void*)this, 0, NULL, 1);
 }
 
-static void gui_task(void *pvParameter)
+static void ui_task(void *pvParameter)
 {
 	Display*	self = (Display*)pvParameter;
 
