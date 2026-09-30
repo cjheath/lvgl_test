@@ -1,0 +1,56 @@
+menu "UI Task Display/Touch Configuration"
+
+    choice UI_DISP_SPI_HOST
+        prompt "SPI host used for the display and touch bus"
+        default UI_DISP_SPI_HOST_SPI3
+        config UI_DISP_SPI_HOST_SPI2
+            bool "SPI2_HOST"
+        config UI_DISP_SPI_HOST_SPI3
+            bool "SPI3_HOST"
+    endchoice
+
+    config UI_DISP_SPI_MOSI_GPIO
+        int "Display/touch SPI MOSI GPIO"
+        default 23
+
+    config UI_DISP_SPI_MISO_GPIO
+        int "Display/touch SPI MISO GPIO"
+        default 19
+
+    config UI_DISP_SPI_CLK_GPIO
+        int "Display/touch SPI CLK GPIO"
+        default 18
+
+    config UI_DISP_CS_GPIO
+        int "Display CS GPIO"
+        default 5
+
+    config UI_DISP_DC_GPIO
+        int "Display DC (data/command) GPIO"
+        default 22
+
+    config UI_DISP_RST_GPIO
+        int "Display RST GPIO"
+        default 21
+
+    config UI_DISP_BCKL_GPIO
+        int "Display backlight GPIO"
+        default 26
+
+    config UI_TOUCH_CS_GPIO
+        int "Touch controller CS GPIO"
+        default 13
+
+    config UI_TOUCH_IRQ_GPIO
+        int "Touch controller IRQ GPIO"
+        default 0
+
+    config UI_DISP_HOR_RES
+        int "Display horizontal resolution"
+        default 320
+
+    config UI_DISP_VER_RES
+        int "Display vertical resolution"
+        default 240
+
+endmenu
