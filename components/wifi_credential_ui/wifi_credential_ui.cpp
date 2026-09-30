@@ -3,7 +3,6 @@
  */
 #include	"ui_task.h"
 #include	"lvgl.h"
-#include	"lv_core/lv_obj.h"
 #include	"wifi_credential_ui.h"
 
 #include	"esp_wifi.h"
@@ -38,30 +37,30 @@ void create_wifi_credential_ui(LVGL::Display* ldp)
 	/*
 	 * Get the Display and screen
 	 */
-	int screenWidth = ldp->display->driver.hor_res;
-	int screenHeight = ldp->display->driver.ver_res;
+	int screenWidth = lv_disp_get_hor_res(ldp->display);
+	int screenHeight = lv_disp_get_ver_res(ldp->display);
 
 	lv_obj_t*	screen = lv_scr_act();
 
-	wifi_scan_gui = lv_obj_create(screen, NULL);
+	wifi_scan_gui = lv_obj_create(screen);
 	lv_obj_set_pos(wifi_scan_gui, 0, 0);
-	lv_obj_set_style_local_bg_color(wifi_scan_gui, LV_OBJ_PART_MAIN, LV_STATE_DEFAULT, LV_COLOR_BLACK);
+	lv_obj_set_style_bg_color(wifi_scan_gui, lv_color_black(), 0);
 	lv_obj_set_size(wifi_scan_gui, screenWidth, screenHeight);
 
-	lv_obj_t*	wifi_scan_header = lv_label_create(wifi_scan_gui, NULL);
+	lv_obj_t*	wifi_scan_header = lv_label_create(wifi_scan_gui);
 	lv_obj_set_size(wifi_scan_header, screenWidth, TOP_HEIGHT);
-	lv_obj_align(wifi_scan_header, wifi_scan_gui, LV_ALIGN_IN_TOP_MID, 0, 0);
+	lv_obj_align(wifi_scan_header, LV_ALIGN_TOP_MID, 0, 0);
 	lv_label_set_text(wifi_scan_header, "Scanning for WiFi APs...");
-	lv_obj_set_style_local_text_font(wifi_scan_header, LV_LABEL_PART_MAIN, LV_STATE_DEFAULT, &lv_font_montserrat_24);
+	lv_obj_set_style_text_font(wifi_scan_header, &lv_font_montserrat_24, 0);
 
-	wifi_scan_list = lv_list_create(wifi_scan_gui, NULL);
+	wifi_scan_list = lv_list_create(wifi_scan_gui);
 	lv_obj_set_pos(wifi_scan_list, 0, TOP_HEIGHT);
 	lv_obj_set_size(wifi_scan_list, screenWidth, screenHeight-TOP_HEIGHT-BOTTOM_HEIGHT);
 
 	static lv_style_t style;
 	lv_style_init(&style);
-	lv_style_set_size(&style, LV_STATE_DEFAULT, 12);		 /* Width of the scrollbar */
-	lv_obj_add_style(wifi_scan_list, LV_LIST_PART_SCROLLBAR, &style);
+	lv_style_set_width(&style, 12);		 /* Width of the scrollbar */
+	lv_obj_add_style(wifi_scan_list, &style, LV_PART_SCROLLBAR);
 
 #if 1
 	wifi_scan();
@@ -90,7 +89,7 @@ void create_wifi_credential_ui(LVGL::Display* ldp)
 			// , ap_info[i].bssid[0] , ap_info[i].bssid[1] , ap_info[i].bssid[2]
 			// , ap_info[i].bssid[3] , ap_info[i].bssid[4] , ap_info[i].bssid[5]
 		);
-		lv_obj_t* b = lv_list_add_btn(
+		lv_obj_t* b = lv_list_add_button(
 				wifi_scan_list,
 				ap_info[i].authmode == WIFI_AUTH_OPEN ? LV_SYMBOL_EYE_OPEN : LV_SYMBOL_EYE_CLOSE,
 				buf // (const char*)ap_info[i].ssid
@@ -98,16 +97,17 @@ void create_wifi_credential_ui(LVGL::Display* ldp)
 	}
 #endif
 
-	cancel_btn = lv_btn_create(wifi_scan_gui, NULL);
-	lv_obj_align(cancel_btn, wifi_scan_gui, LV_ALIGN_IN_BOTTOM_RIGHT, 0, 0);
-	lv_obj_set_event_cb(cancel_btn,
-		[](lv_obj_t* obj, lv_event_t event){
-			if (event == LV_EVENT_CLICKED) show_wifi_credential_ui(false);
-		}
+	cancel_btn = lv_button_create(wifi_scan_gui);
+	lv_obj_align(cancel_btn, LV_ALIGN_BOTTOM_RIGHT, 0, 0);
+	lv_obj_add_event_cb(cancel_btn,
+		[](lv_event_t* e){
+			if (lv_event_get_code(e) == LV_EVENT_CLICKED) show_wifi_credential_ui(false);
+		},
+		LV_EVENT_CLICKED, NULL
 	);
-	lv_obj_t* label = lv_label_create(cancel_btn, NULL);
+	lv_obj_t* label = lv_label_create(cancel_btn);
 	lv_label_set_text(label, "Cancel");
-	lv_obj_align(label, NULL, LV_ALIGN_CENTER, 0, 0);
+	lv_obj_center(label);
 
 #if 0
 	makePW();
@@ -228,11 +228,12 @@ void create_wifi_credential_button(lv_obj_t* parent)
 #endif
 }
 
-static void keyboard_event_cb(lv_obj_t* kb, lv_event_t event)
+static void keyboard_event_cb(lv_event_t* e)
 {
-	lv_keyboard_def_event_cb(kb, event);
+	lv_keyboard_def_event_cb(e);
 
-	if (event == LV_EVENT_APPLY) {
+	lv_event_code_t	code = lv_event_get_code(e);
+	if (code == LV_EVENT_READY) {
 		lv_obj_move_background(keyboard_ui);
 /*		const char* password = String(lv_textarea_get_text(ta_password));
 		lv_obj_set_hidden(ta_password, true);
@@ -241,7 +242,7 @@ static void keyboard_event_cb(lv_obj_t* kb, lv_event_t event)
 		lv_obj_set_hidden(pwd_label1, false);
 */
 	}
-	else if (event == LV_EVENT_CANCEL)
+	else if (code == LV_EVENT_CANCEL)
 	{
 		lv_obj_move_background(keyboard_ui);
 	}
@@ -249,11 +250,11 @@ static void keyboard_event_cb(lv_obj_t* kb, lv_event_t event)
 
 static void makeKeyboard()
 {
-	keyboard_ui = lv_keyboard_create(lv_scr_act(), NULL);
+	keyboard_ui = lv_keyboard_create(lv_scr_act());
 	lv_obj_set_size(keyboard_ui, LV_HOR_RES, LV_VER_RES / 2);
 	// lv_keyboard_set_cursor_manage(keyboard_ui, true);
 
 	// lv_keyboard_set_textarea(keyboard_ui, ta_password);
-	lv_obj_set_event_cb(keyboard_ui, keyboard_event_cb);
+	lv_obj_add_event_cb(keyboard_ui, keyboard_event_cb, LV_EVENT_ALL, 0);
 	lv_obj_move_background(keyboard_ui);
 }

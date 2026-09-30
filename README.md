@@ -9,7 +9,6 @@ Next up is to implement WiFi AP scanning, selection and password entry.
 - Download the code using `git clone --recurse-submodules` to get all submodules
 - Configure ESP-IDF environment variables (I use `. ~/.espressif/esp-idf/export.sh`)
 - Use `idf.py menuconfig` or the VSCode ESP-IDF SDK Configuration Editor to select your LCD hardware
-- Apply this patch: `patch -p1 lvgl_esp32_drivers.patch`
 - Build using `idf.py build` or VSCode
 
 ### More information on LVGL setup
