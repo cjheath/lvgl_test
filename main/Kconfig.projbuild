@@ -1,0 +1,12 @@
+menu "Application"
+
+    choice APP_MAIN
+        prompt "Main program"
+        default APP_MAIN_LVGL
+        config APP_MAIN_LVGL
+            bool "LVGL touchscreen UI"
+        config APP_MAIN_CONSOLE_SCAN
+            bool "Serial console WiFi scan (no LCD needed)"
+    endchoice
+
+endmenu
