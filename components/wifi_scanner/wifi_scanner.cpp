@@ -15,18 +15,10 @@
 #include	"wifi_scanner.h"
 
 static const int	MAX_APS = 40;
-static const size_t	SCANNER_STACK_BYTES = 8192;
-
-static const ThreadParams*
-scanner_params()
-{
-	static ThreadParams	params;
-	params.stackBytes = SCANNER_STACK_BYTES;
-	return &params;
-}
+static const ThreadParams	scanner_params = { 8192 };
 
 WifiScanner::WifiScanner(MessageQueue& a_replies)
-: Thread(scanner_params())
+: Thread(&scanner_params)
 , replies(a_replies)
 , auto_ms(0)
 {
@@ -42,10 +34,7 @@ WifiScanner::reply(const VariantArray& message)
 void
 WifiScanner::reply_error(const char* what, const char* detail)
 {
-	VariantArray	message;
-	message.push(Variant("error"));
-	message.push(Variant(StrVal(what) + StrVal(": ") + StrVal(detail)));
-	reply(message);
+	reply(VariantArray() << "error" << StrVal::format("{1}: {2}", VariantArray() << what << detail));
 }
 
 bool
@@ -98,37 +87,18 @@ auth_name(wifi_auth_mode_t auth)
 	}
 }
 
-// An SSID is up to 32 bytes of anything, usually UTF-8
+// An SSID is up to 32 bytes of anything, usually UTF-8; StrVal substitutes for any illegal bytes
 static StrVal
 ssid_string(const uint8_t* ssid)
 {
-	size_t		length = strnlen((const char*)ssid, 32);
-	for (size_t i = 0; i < length; )
-	{
-		uint8_t		c = ssid[i];
-		int		extra = c < 0x80 ? 0 : (c & 0xE0) == 0xC0 ? 1 : (c & 0xF0) == 0xE0 ? 2 : (c & 0xF8) == 0xF0 ? 3 : -1;
-		bool		bad = extra < 0 || i+extra >= length;
-		for (int j = 1; !bad && j <= extra; j++)
-			bad = (ssid[i+j] & 0xC0) != 0x80;
-		if (bad)
-			return StrVal((const char*)ssid, (StrValIndex)length, 0, ArrayCopy, StrRawBinary);
-		i += extra+1;
-	}
-	return StrVal((const char*)ssid, (StrValIndex)length);
+	return StrVal((const char*)ssid, (StrValIndex)strnlen((const char*)ssid, 32));
 }
 
 static StrVal
-bssid_string(const uint8_t* bssid)
+bssid_string(const uint8_t* b)
 {
-	static const char	digits[] = "0123456789abcdef";
-	char			text[18];
-	for (int i = 0; i < 6; i++)
-	{
-		text[i*3] = digits[bssid[i] >> 4];
-		text[i*3+1] = digits[bssid[i] & 15];
-		text[i*3+2] = i < 5 ? ':' : '\0';
-	}
-	return StrVal(text);
+	return StrVal::format("{1:x02}:{2:x02}:{3:x02}:{4:x02}:{5:x02}:{6:x02}",
+		VariantArray() << (int)b[0] << (int)b[1] << (int)b[2] << (int)b[3] << (int)b[4] << (int)b[5]);
 }
 
 void
@@ -158,32 +128,17 @@ WifiScanner::scan()
 	}
 
 	// The driver returns them strongest-first already, but doesn't promise to
-	for (int i = 1; i < count; i++)
-	{
-		wifi_ap_record_t	r = records[i];
-		int			j = i;
-		for (; j > 0 && records[j-1].rssi < r.rssi; j--)
-			records[j] = records[j-1];
-		records[j] = r;
-	}
+	qsort(records, count, sizeof *records, [](const void* a, const void* b)
+		{ return (int)((const wifi_ap_record_t*)b)->rssi - ((const wifi_ap_record_t*)a)->rssi; });
 
 	VariantArray		aps;
 	for (int i = 0; i < count; i++)
-	{
-		VariantArray	ap;
-		ap.push(Variant(ssid_string(records[i].ssid)));
-		ap.push(Variant((int)records[i].rssi));
-		ap.push(Variant((int)records[i].primary));
-		ap.push(Variant(auth_name(records[i].authmode)));
-		ap.push(Variant(bssid_string(records[i].bssid)));
-		aps.push(Variant(ap));
-	}
+		aps << Variant(VariantArray()
+			<< ssid_string(records[i].ssid) << (int)records[i].rssi << (int)records[i].primary
+			<< auth_name(records[i].authmode) << bssid_string(records[i].bssid));
 	free(records);
 
-	VariantArray		message;
-	message.push(Variant("scan"));
-	message.push(Variant(aps));
-	reply(message);
+	reply(VariantArray() << "scan" << Variant(aps));
 }
 
 int
@@ -192,9 +147,7 @@ WifiScanner::run()
 	if (!start_wifi())
 		return 1;
 
-	VariantArray		ready;
-	ready.push(Variant("ready"));
-	reply(ready);
+	reply(VariantArray() << "ready");
 
 	for (;;)
 	{
@@ -233,9 +186,7 @@ WifiScanner::run()
 		{
 			bool	stopped = check(esp_wifi_stop(), "esp_wifi_stop")
 				&& check(esp_wifi_deinit(), "esp_wifi_deinit");
-			VariantArray	bye;
-			bye.push(Variant("quit"));
-			reply(bye);
+			reply(VariantArray() << "quit");
 			return stopped ? 0 : 1;
 		}
 		else

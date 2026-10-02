@@ -6,9 +6,7 @@ thread calls `esp_wifi_*`; you talk to the scanner over `MessageQueue`s.
     MessageQueue    inbox;                       // where replies arrive
     WifiScanner scanner(inbox);           // starts the thread
 
-    VariantArray request;
-    request.push(Variant("scan"));
-    scanner.requests.push(Variant(request));   // wrap it: push(VariantArray) sends each element separately
+    scanner.requests.push(Variant(VariantArray() << "scan"));   // wrap it: push(VariantArray) sends each element separately
 
     Variant reply = inbox.pop();
 
