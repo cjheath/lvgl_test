@@ -5,9 +5,6 @@
 [submodule "components/lvgl_touch_calibration"]
 	path = components/lvgl_touch_calibration
 	url = https://github.com/jakpaul/lvgl_touch_calibration.git
-[submodule "components/strpp"]
-	path = components/strpp
-	url = https://github.com/cjheath/strpp.git
 [submodule "wifi_credentials"]
 	path = components/wifi_credentials
 	url = git@github.com:cjheath/wifi_credentials.git

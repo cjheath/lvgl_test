@@ -20,7 +20,6 @@ static const ThreadParams	scanner_params = { 8192 };
 WifiScanner::WifiScanner(MessageQueue& a_replies)
 : Thread(&scanner_params)
 , replies(a_replies)
-, auto_ms(0)
 {
 	resume();
 }
@@ -101,17 +100,17 @@ bssid_string(const uint8_t* b)
 		VariantArray() << (int)b[0] << (int)b[1] << (int)b[2] << (int)b[3] << (int)b[4] << (int)b[5]);
 }
 
-void
-WifiScanner::scan()
+bool
+WifiScanner::scan(VariantArray& aps)
 {
 	wifi_scan_config_t	config;
 	memset(&config, 0, sizeof config);	// All channels, active scan, hidden APs not shown
 	if (!check(esp_wifi_scan_start(&config, true), "esp_wifi_scan_start"))
-		return;
+		return false;
 
 	uint16_t		found = 0;
 	if (!check(esp_wifi_scan_get_ap_num(&found), "esp_wifi_scan_get_ap_num"))
-		return;
+		return false;
 	uint16_t		count = found < MAX_APS ? found : MAX_APS;
 
 	wifi_ap_record_t*	records = (wifi_ap_record_t*)calloc(count ? count : 1, sizeof *records);
@@ -119,26 +118,85 @@ WifiScanner::scan()
 	{
 		esp_wifi_clear_ap_list();
 		reply_error("scan", "out of memory");
-		return;
+		return false;
 	}
 	if (!check(esp_wifi_scan_get_ap_records(&count, records), "esp_wifi_scan_get_ap_records"))
 	{
 		free(records);
-		return;
+		return false;
 	}
 
 	// The driver returns them strongest-first already, but doesn't promise to
 	qsort(records, count, sizeof *records, [](const void* a, const void* b)
 		{ return (int)((const wifi_ap_record_t*)b)->rssi - ((const wifi_ap_record_t*)a)->rssi; });
 
-	VariantArray		aps;
 	for (int i = 0; i < count; i++)
 		aps << Variant(VariantArray()
 			<< ssid_string(records[i].ssid) << (int)records[i].rssi << (int)records[i].primary
 			<< auth_name(records[i].authmode) << bssid_string(records[i].bssid));
 	free(records);
+	return true;
+}
 
-	reply(VariantArray() << "scan" << Variant(aps));
+// Scan without holding a Window up, then publish the result
+bool
+WifiScanner::scan_and_publish()
+{
+	VariantArray	aps;
+	if (!scan(aps))
+		return false;
+	update([&](Data& d) { d.last_scan = aps; d.scan_count++; });
+	return true;
+}
+
+// Handle one request, or the end of the auto interval if request is null. Return -1 to
+// carry on, or the exit code of the thread. Data is only changed in update().
+int
+WifiScanner::handle(const Variant& request, VariantArray& announcement)
+{
+	if (request.is_null())
+	{		// The interval passed with no request
+		if (scan_and_publish())
+			announcement << "scan" << (int)data().scan_count;
+		return -1;
+	}
+
+	if (request.type() != Variant::VarArray)
+	{
+		reply_error("request", "not an array");
+		return -1;
+	}
+	VariantArray	args = request.as_variant_array();
+	if (args.length() == 0 || args[0].type() != Variant::String)
+	{
+		reply_error("request", "no command name");
+		return -1;
+	}
+
+	StrVal		command = args[0].as_strval();
+	if (command == "scan")
+	{
+		if (scan_and_publish())
+			announcement << "scan" << (int)data().scan_count;
+	}
+	else if (command == "auto")
+	{
+		if (args.length() != 2 || args[1].type() != Variant::Integer || args[1].as_int() < 0)
+			reply_error("auto", "needs a count of milliseconds, or 0");
+		else
+			update([&](Data& d) { d.auto_ms = args[1].as_int(); });
+	}
+	else if (command == "quit")
+	{
+		bool	stopped = check(esp_wifi_stop(), "esp_wifi_stop")
+			&& check(esp_wifi_deinit(), "esp_wifi_deinit");
+		update([](Data& d) { d.ready = false; });
+		announcement << "quit";
+		return stopped ? 0 : 1;
+	}
+	else
+		reply_error("request", "unknown command");
+	return -1;
 }
 
 int
@@ -147,49 +205,17 @@ WifiScanner::run()
 	if (!start_wifi())
 		return 1;
 
+	update([](Data& d) { d.ready = true; });
 	reply(VariantArray() << "ready");
 
 	for (;;)
 	{
-		Variant		request = auto_ms > 0 ? requests.pop(Milliseconds(auto_ms)) : requests.pop();
-		if (request.is_null())
-		{		// The interval passed with no request
-			scan();
-			continue;
-		}
-
-		if (request.type() != Variant::VarArray)
-		{
-			reply_error("request", "not an array");
-			continue;
-		}
-		VariantArray	args = request.as_variant_array();
-		if (args.length() == 0 || args[0].type() != Variant::String)
-		{
-			reply_error("request", "no command name");
-			continue;
-		}
-
-		StrVal		command = args[0].as_strval();
-		if (command == "scan")
-			scan();
-		else if (command == "auto")
-		{
-			if (args.length() != 2 || args[1].type() != Variant::Integer || args[1].as_int() < 0)
-			{
-				reply_error("auto", "needs a count of milliseconds, or 0");
-				continue;
-			}
-			auto_ms = args[1].as_int();
-		}
-		else if (command == "quit")
-		{
-			bool	stopped = check(esp_wifi_stop(), "esp_wifi_stop")
-				&& check(esp_wifi_deinit(), "esp_wifi_deinit");
-			reply(VariantArray() << "quit");
-			return stopped ? 0 : 1;
-		}
-		else
-			reply_error("request", "unknown command");
+		Variant		request = data().auto_ms > 0 ? requests.pop(Milliseconds(data().auto_ms)) : requests.pop();
+		VariantArray	announcement;
+		int		exit_code = handle(request, announcement);
+		if (announcement.length() > 0)
+			reply(announcement);
+		if (exit_code >= 0)
+			return exit_code;
 	}
 }

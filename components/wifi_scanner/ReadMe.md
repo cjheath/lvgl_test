@@ -24,12 +24,31 @@ Push a `Variant` holding a `VariantArray` onto `scanner.requests`:
 Each reply is a `VariantArray` whose first element names it:
 
 - `["ready"]` - the driver started. You get this once, first.
-- `["scan", [ap, ...]]` - the access points found, strongest first. Each
-  `ap` is `[ssid, rssi, channel, auth, bssid]`: a string, an integer in
-  dBm, an integer, one of `open`, `WEP`, `WPA`, `WPA2`, `WPA/WPA2`, `WPA3`,
-  `WPA2/WPA3`, `OWE` or `other`, and a string like `aa:bb:cc:dd:ee:ff`.
+- `["scan", n]` - scan number `n` finished and its access points are
+  available: see "Reading the access points".
 - `["error", text]` - a request or the driver failed. If the driver failed
   to start, the thread then ends.
 - `["quit"]` - the thread is about to end.
 
-At most 40 access points are returned.
+## Reading the access points
+
+The scanner keeps what it knows in a `WifiScannerData`, which you read through
+a `Window` rather than receiving it in a message:
+
+    Window<WifiScanner> w(scanner, Milliseconds(1000));
+    if (w.holding())
+        VariantArray aps = w->last_scan;     // copy it, so you can close the Window
+
+While your Window is open the scanner changes none of this. It scans without
+holding a Window up and only waits for yours to close when it has a result to
+store, so a Window opens at once unless the scanner is storing one. It has:
+
+- `ready` - the driver is running.
+- `auto_ms` - the `auto` interval, or 0.
+- `scan_count` - the number of scans completed; the `n` of the `scan` reply.
+- `last_scan` - the access points of the latest scan, strongest first. Each
+  is `[ssid, rssi, channel, auth, bssid]`: a string, an integer in dBm, an
+  integer, one of `open`, `WEP`, `WPA`, `WPA2`, `WPA/WPA2`, `WPA3`,
+  `WPA2/WPA3`, `OWE` or `other`, and a string like `aa:bb:cc:dd:ee:ff`.
+
+At most 40 access points are kept.
