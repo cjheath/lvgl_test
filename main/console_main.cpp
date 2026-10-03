@@ -22,7 +22,7 @@
 
 #include "thread.h"
 #include "msgqueue.h"
-#include "window.h"
+#include "transactional.h"
 #include "wifi_scanner.h"
 
 #if defined(STRPP_MONITOR)
@@ -236,7 +236,7 @@ Console::info()
 		(unsigned)uxTaskGetStackHighWaterMark(NULL),
 		(unsigned)(stopped ? 0 : uxTaskGetStackHighWaterMark(scanner.id())));
 
-	Window<WifiScanner>	w(scanner, Milliseconds(100));
+	ReadWindow<WifiScan>	w(scanner.scan, Milliseconds(100));
 	if (w.holding())
 		printf("Scanner: %s, %u scans, auto %ld ms\n", w->ready ? "running" : "not running", w->scan_count, w->auto_ms);
 	else
@@ -314,7 +314,7 @@ Console::monitor_status()
 {
 	if (!the_monitor)
 		return;
-	Window<Monitor>		window(*the_monitor, Milliseconds(200));
+	ReadWindow<MonitorData>	window(the_monitor->published, Milliseconds(200));
 	if (!window.holding())
 	{
 		printf("The monitor is busy\n");
@@ -453,7 +453,7 @@ Console::show_scan()
 {
 	VariantArray	aps;
 	{
-		Window<WifiScanner>	w(scanner, Milliseconds(1000));
+		ReadWindow<WifiScan>	w(scanner.scan, Milliseconds(1000));
 		if (!w.holding())
 		{
 			printf("The scanner is busy; the access points are not available yet\n");

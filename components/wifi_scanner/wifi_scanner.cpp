@@ -101,7 +101,7 @@ bssid_string(const uint8_t* b)
 }
 
 bool
-WifiScanner::scan(VariantArray& aps)
+WifiScanner::scan_into(VariantArray& aps)
 {
 	wifi_scan_config_t	config;
 	memset(&config, 0, sizeof config);	// All channels, active scan, hidden APs not shown
@@ -143,21 +143,21 @@ bool
 WifiScanner::scan_and_publish()
 {
 	VariantArray	aps;
-	if (!scan(aps))
+	if (!scan_into(aps))
 		return false;
-	update([&](Data& d) { d.last_scan = aps; d.scan_count++; });
+	scan.update([&](WifiScan& d) { d.last_scan = aps; d.scan_count++; });
 	return true;
 }
 
 // Handle one request, or the end of the auto interval if request is null. Return -1 to
-// carry on, or the exit code of the thread. Data is only changed in update().
+// carry on, or the exit code of the thread. Data is only changed in scan.update().
 int
 WifiScanner::handle(const Variant& request, VariantArray& announcement)
 {
 	if (request.is_null())
 	{		// The interval passed with no request
 		if (scan_and_publish())
-			announcement << "scan" << (int)data().scan_count;
+			announcement << "scan" << (int)scan.unguarded().scan_count;
 		return -1;
 	}
 
@@ -177,20 +177,20 @@ WifiScanner::handle(const Variant& request, VariantArray& announcement)
 	if (command == "scan")
 	{
 		if (scan_and_publish())
-			announcement << "scan" << (int)data().scan_count;
+			announcement << "scan" << (int)scan.unguarded().scan_count;
 	}
 	else if (command == "auto")
 	{
 		if (args.length() != 2 || args[1].type() != Variant::Integer || args[1].as_int() < 0)
 			reply_error("auto", "needs a count of milliseconds, or 0");
 		else
-			update([&](Data& d) { d.auto_ms = args[1].as_int(); });
+			scan.update([&](WifiScan& d) { d.auto_ms = args[1].as_int(); });
 	}
 	else if (command == "quit")
 	{
 		bool	stopped = check(esp_wifi_stop(), "esp_wifi_stop")
 			&& check(esp_wifi_deinit(), "esp_wifi_deinit");
-		update([](Data& d) { d.ready = false; });
+		scan.update([](WifiScan& d) { d.ready = false; });
 		announcement << "quit";
 		return stopped ? 0 : 1;
 	}
@@ -205,12 +205,12 @@ WifiScanner::run()
 	if (!start_wifi())
 		return 1;
 
-	update([](Data& d) { d.ready = true; });
+	scan.update([](WifiScan& d) { d.ready = true; });
 	reply(VariantArray() << "ready");
 
 	for (;;)
 	{
-		Variant		request = data().auto_ms > 0 ? requests.pop(Milliseconds(data().auto_ms)) : requests.pop();
+		Variant		request = scan.unguarded().auto_ms > 0 ? requests.pop(Milliseconds(scan.unguarded().auto_ms)) : requests.pop();
 		VariantArray	announcement;
 		int		exit_code = handle(request, announcement);
 		if (announcement.length() > 0)

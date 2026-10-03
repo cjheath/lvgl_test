@@ -32,10 +32,10 @@ Each reply is a `VariantArray` whose first element names it:
 
 ## Reading the access points
 
-The scanner keeps what it knows in a `WifiScannerData`, which you read through
-a `Window` rather than receiving it in a message:
+The scanner keeps what it knows in a `WifiScan`, which you read through
+a `ReadWindow` on `scanner.scan` rather than receiving it in a message:
 
-    Window<WifiScanner> w(scanner, Milliseconds(1000));
+    ReadWindow<WifiScan> w(scanner.scan, Milliseconds(1000));
     if (w.holding())
         VariantArray aps = w->last_scan;     // copy it, so you can close the Window
 
