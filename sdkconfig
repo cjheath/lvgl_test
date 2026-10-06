@@ -730,15 +730,6 @@ CONFIG_PARTITION_TABLE_MD5=y
 # end of Partition Table
 
 #
-# Application
-#
-# default:
-CONFIG_APP_MAIN_LVGL=y
-# default:
-# CONFIG_APP_MAIN_CONSOLE_SCAN is not set
-# end of Application
-
-#
 # UI Task Display/Touch Configuration
 #
 # default:

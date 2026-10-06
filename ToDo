@@ -1,0 +1,94 @@
+Use cases
+	Fixed device
+		Config
+			AP+HTTP
+			Serial
+			LCD
+		Single AP saved
+		Connect on boot
+		While AP unavailable or connection failed
+			Scan for available APs
+			Display available APs
+			Select AP
+			Receive Password
+			Connect
+				On success Save Password
+
+	Personal device, LCD config
+		Background scanner
+		While not connected
+			If known/open WiFi exists AP
+				Join preferred WiFi AP
+			else
+				Alert when unknown/open WiFi AP becomes available
+		When WiFi requested
+			Display available WiFi
+			Select AP
+			Receive password
+			Connect
+		When Manage WiFi requested
+			Display saved WiFi APs
+			Move up/down
+			Delete
+
+Configuration settings
+	Number of Wifi AP credentials to save (0, 1, many)
+	Use per-channel scan for background
+	Scan Interval
+	WiFi Authentication Mode (Console/LCD/AP)
+		AP Name
+	WiFi AP Preferences
+		None
+		Auto
+		Manual
+
+Tasks/Stores
+	Saved WiFi Credentials List (of Preferred APs with credentials)
+		Data
+			Rank (implicit)
+			Name
+			Last Seen(?)
+			Credential
+			CredentialIsBad
+		One of: Null, One, List
+		Optional: Priority order
+		Retrieve Credential for AP
+		Save to NVRAM
+
+	Available APs API
+		Name
+		Encryption/Auth
+		Signal strength
+
+	WiFi Connection manager
+		Connect to saved AP:
+			none saved: fail immediately
+			only one saved: Attempt connection
+			more than one saved:
+				Scan available APs
+				Order Available APs by Preferred AP rank, then by signal strength
+				Match saved to available in order of priority
+		On bad credentials:
+			Mark saved credential as bad
+		When no saved AP is available
+			Background scan (end-user device), re-start when any good saved AP is available
+		External indicator variables:
+			Status: Scanning, Connecting, Connected, Failed (can't connect or no saved AP available)
+			List of available APs open, unsaved, or wrong-credentialled
+
+	WiFi Authentication UI
+		Functions:
+			Display Available APs (strength, encryption/auth, (un)credentialled, credential-bad, open)
+			Select an AP
+			Receive password
+		Modes:
+			LCD
+			Console commands
+				(Requires a Console to publish command availability)
+			WiFi AP
+				DNS
+				DHCP
+				HTTP
+
+	WiFi AP Preferences UI
+		GUI Screen to display, rank, delete preferred APs

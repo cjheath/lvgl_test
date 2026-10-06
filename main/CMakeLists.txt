@@ -1,4 +1,4 @@
-set(srcs "main.cpp" "console_main.cpp")
+set(srcs "main.cpp")
 
 idf_component_register(
 		SRCS ${srcs}
